@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../theme/app_palette.dart';
 import 'app_colors.dart';
 
 class AppTheme {
@@ -11,6 +12,7 @@ class AppTheme {
       fontFamily: fontFamilyName,
       scaffoldBackgroundColor: AppColors.darkBg,
       primaryColor: AppColors.primaryCobalt,
+      extensions: const [AppPalette.dark],
       colorScheme: const ColorScheme.dark(
         primary: AppColors.primaryCobalt,
         secondary: AppColors.primaryIce,
@@ -139,6 +141,7 @@ class AppTheme {
       fontFamily: fontFamilyName,
       scaffoldBackgroundColor: AppColors.lightBg,
       primaryColor: AppColors.logoNavy,
+      extensions: const [AppPalette.light],
       colorScheme: const ColorScheme.light(
         primary: AppColors.logoNavy,
         secondary: AppColors.primaryCobalt,

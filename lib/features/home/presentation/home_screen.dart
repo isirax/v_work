@@ -6,6 +6,10 @@ import '../../../core/providers/nutrition_provider.dart';
 import '../../../core/providers/supplement_provider.dart';
 import '../../../core/providers/theme_provider.dart';
 import '../../../core/providers/workout_provider.dart';
+import '../../../core/theme/app_palette.dart';
+import '../../../core/widgets/common/v_badge.dart';
+import '../../../core/widgets/common/v_callout.dart';
+import '../../../core/widgets/common/v_progress_ring.dart';
 import '../../../core/widgets/v_logo.dart';
 import '../../apt_rehab/presentation/apt_routine_screen.dart';
 import '../../nutrition/presentation/nutrition_screen.dart';
@@ -35,45 +39,46 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final themeMode = ref.watch(themeProvider);
-    final isDark = themeMode == ThemeMode.dark;
+    final palette = context.palette;
+    final isDark = context.isDark;
 
     return Scaffold(
+      backgroundColor: palette.background,
       body: IndexedStack(
         index: _selectedTabIndex,
         children: _tabs,
       ),
       bottomNavigationBar: NavigationBar(
         selectedIndex: _selectedTabIndex,
-        backgroundColor: isDark ? AppColors.darkCard : AppColors.lightCard,
-        indicatorColor: AppColors.primaryVolt.withValues(alpha: isDark ? 0.25 : 0.20),
+        backgroundColor: palette.surface,
+        indicatorColor: palette.accent.withValues(alpha: isDark ? 0.22 : 0.16),
         onDestinationSelected: (index) {
           setState(() => _selectedTabIndex = index);
         },
-        destinations: const [
+        destinations: [
           NavigationDestination(
-            icon: Icon(Icons.dashboard_outlined),
-            selectedIcon: Icon(Icons.dashboard_rounded, color: AppColors.primaryVolt),
+            icon: const Icon(Icons.dashboard_outlined),
+            selectedIcon: Icon(Icons.dashboard_rounded, color: palette.accent),
             label: 'Home',
           ),
           NavigationDestination(
-            icon: Icon(Icons.fitness_center_outlined),
-            selectedIcon: Icon(Icons.fitness_center_rounded, color: AppColors.primaryVolt),
+            icon: const Icon(Icons.fitness_center_outlined),
+            selectedIcon: Icon(Icons.fitness_center_rounded, color: palette.accent),
             label: 'Workouts',
           ),
           NavigationDestination(
-            icon: Icon(Icons.shield_outlined),
-            selectedIcon: Icon(Icons.shield_rounded, color: AppColors.primaryVolt),
+            icon: const Icon(Icons.shield_outlined),
+            selectedIcon: Icon(Icons.shield_rounded, color: palette.accent),
             label: 'APT Rehab',
           ),
           NavigationDestination(
-            icon: Icon(Icons.restaurant_outlined),
-            selectedIcon: Icon(Icons.restaurant_rounded, color: AppColors.primaryVolt),
+            icon: const Icon(Icons.restaurant_outlined),
+            selectedIcon: Icon(Icons.restaurant_rounded, color: palette.accent),
             label: 'Nutrition',
           ),
           NavigationDestination(
-            icon: Icon(Icons.person_outline_rounded),
-            selectedIcon: Icon(Icons.person_rounded, color: AppColors.primaryVolt),
+            icon: const Icon(Icons.person_outline_rounded),
+            selectedIcon: Icon(Icons.person_rounded, color: palette.accent),
             label: 'Profile',
           ),
         ],
@@ -91,21 +96,27 @@ class _DashboardTab extends ConsumerWidget {
     final biometrics = ref.watch(biometricsProvider);
     final foodItems = ref.watch(nutritionProvider);
     final supplementState = ref.watch(supplementProvider);
-    final themeMode = ref.watch(themeProvider);
-    final isDark = themeMode == ThemeMode.dark;
+    final palette = context.palette;
+    final isDark = context.isDark;
 
     final todayWorkout = workout.selectedDay;
     final loggedCals = foodItems.where((i) => i.isCompleted).fold<double>(0, (sum, i) => sum + i.calories);
     final targetCals = biometrics.targetCalories;
+    final calProgress = (targetCals > 0) ? (loggedCals / targetCals).clamp(0.0, 1.0) : 0.0;
+
     final completedSupps = supplementState.items.where((i) => i.isCompleted).length;
     final totalSupps = supplementState.items.length;
+    final suppProgress = (totalSupps > 0) ? (completedSupps / totalSupps).clamp(0.0, 1.0) : 0.0;
 
     return Scaffold(
+      backgroundColor: palette.background,
       appBar: AppBar(
-        titleSpacing: 16,
+        backgroundColor: palette.surface,
+        elevation: 0,
+        titleSpacing: Insets.lg,
         title: Row(
           children: [
-            const VLogo(size: 34, showGlow: true),
+            const VLogo(size: 32, showGlow: true),
             const SizedBox(width: 10),
             const Text(
               'V Workout',
@@ -124,7 +135,7 @@ class _DashboardTab extends ConsumerWidget {
                   isDark ? Icons.light_mode_rounded : Icons.dark_mode_rounded,
                   key: ValueKey<bool>(isDark),
                   color: isDark ? const Color(0xFFFFC107) : AppColors.logoNavy,
-                  size: 22,
+                  size: 20,
                 ),
               ),
               tooltip: isDark ? 'Switch to White Theme' : 'Switch to Dark Theme',
@@ -133,7 +144,7 @@ class _DashboardTab extends ConsumerWidget {
         ),
       ),
       body: ListView(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        padding: Insets.page,
         children: [
           // Greeting & Periodization Phase Chip
           Row(
@@ -142,15 +153,17 @@ class _DashboardTab extends ConsumerWidget {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
+                  Text(
                     'Welcome back, Athlete',
-                    style: TextStyle(fontSize: 13, color: Colors.grey),
+                    style: TextStyle(fontSize: 12, color: palette.textMuted),
                   ),
+                  const SizedBox(height: 2),
                   Text(
                     'Week ${workout.currentWeek} • ${workout.currentPhase.title.split('&').first.trim()}',
                     style: const TextStyle(
                       fontSize: 15,
                       fontWeight: FontWeight.bold,
+                      letterSpacing: -0.2,
                     ),
                   ),
                 ],
@@ -162,37 +175,23 @@ class _DashboardTab extends ConsumerWidget {
                     MaterialPageRoute(builder: (_) => const MesocycleScreen()),
                   );
                 },
-                borderRadius: BorderRadius.circular(10),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                  decoration: BoxDecoration(
-                    color: AppColors.primaryVolt.withValues(alpha: 0.15),
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: Text(
-                    'Phase ${workout.currentPhase.phaseNumber}',
-                    style: const TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w900,
-                      color: AppColors.primaryVolt,
-                    ),
-                  ),
+                borderRadius: BorderRadius.circular(Radii.md),
+                child: VBadge(
+                  label: 'Phase ${workout.currentPhase.phaseNumber}',
+                  variant: VBadgeVariant.accent,
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: Insets.md),
 
           // TODAY'S WORKOUT HERO CARD
           Container(
-            padding: const EdgeInsets.all(20),
+            padding: const EdgeInsets.all(Insets.lg),
             decoration: BoxDecoration(
-              gradient: isDark ? AppColors.darkCardGradient : null,
-              color: isDark ? null : AppColors.lightCard,
-              borderRadius: BorderRadius.circular(24),
-              border: Border.all(
-                color: isDark ? AppColors.darkCardBorder : AppColors.lightCardBorder,
-              ),
+              color: palette.surface,
+              borderRadius: BorderRadius.circular(Radii.xl),
+              border: Border.all(color: palette.border),
               boxShadow: [
                 BoxShadow(
                   color: Colors.black.withValues(alpha: isDark ? 0.25 : 0.05),
@@ -207,31 +206,21 @@ class _DashboardTab extends ConsumerWidget {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: AppColors.primaryVolt.withValues(alpha: 0.15),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Text(
-                        'DAY ${todayWorkout.dayNumber} OF 5',
-                        style: const TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w900,
-                          color: AppColors.primaryVolt,
-                        ),
-                      ),
+                    VBadge(
+                      label: 'DAY ${todayWorkout.dayNumber} OF 5',
+                      variant: VBadgeVariant.accent,
                     ),
                     Text(
                       '${todayWorkout.exercises.length} Exercises',
                       style: TextStyle(
                         fontSize: 12,
-                        color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
+                        color: palette.textSecondary,
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
                   ],
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: Insets.md),
                 Text(
                   todayWorkout.title,
                   style: const TextStyle(
@@ -245,56 +234,43 @@ class _DashboardTab extends ConsumerWidget {
                   todayWorkout.subtitle,
                   style: TextStyle(
                     fontSize: 13,
-                    color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
+                    color: palette.textSecondary,
                   ),
                 ),
-                const SizedBox(height: 12),
-                Container(
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    color: isDark ? const Color(0x33000000) : const Color(0x0C000000),
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: Row(
-                    children: [
-                      const Icon(Icons.shield_outlined, size: 14, color: AppColors.primaryVolt),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          todayWorkout.biomechanicalFocus,
-                          style: TextStyle(
-                            fontSize: 11,
-                            color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
-                          ),
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                    ],
-                  ),
+                const SizedBox(height: Insets.md),
+                VCallout(
+                  message: todayWorkout.biomechanicalFocus,
+                  icon: Icons.shield_outlined,
+                  variant: VCalloutVariant.accent,
                 ),
-                const SizedBox(height: 16),
-                Row(
-                  children: [
-                    Expanded(
-                      child: ElevatedButton.icon(
-                        onPressed: () {
-                          ref.read(workoutProvider.notifier).startWorkoutSession(workout.selectedDayIndex);
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(builder: (_) => const ActiveWorkoutScreen()),
-                          );
-                        },
-                        icon: const Icon(Icons.play_arrow_rounded),
-                        label: const Text('Start Workout'),
-                      ),
+                const SizedBox(height: Insets.lg),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: palette.accent,
+                      foregroundColor: palette.onAccent,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(Radii.md)),
                     ),
-                  ],
+                    onPressed: () {
+                      ref.read(workoutProvider.notifier).startWorkoutSession(workout.selectedDayIndex);
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => const ActiveWorkoutScreen()),
+                      );
+                    },
+                    icon: const Icon(Icons.play_arrow_rounded, size: 20),
+                    label: const Text(
+                      'Start Workout Session',
+                      style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+                    ),
+                  ),
                 ),
               ],
             ),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: Insets.md),
 
           // MANDATORY APT 10-MIN ROUTINE QUICK CARD
           InkWell(
@@ -304,50 +280,45 @@ class _DashboardTab extends ConsumerWidget {
                 MaterialPageRoute(builder: (_) => const AptRoutineScreen()),
               );
             },
-            borderRadius: BorderRadius.circular(20),
+            borderRadius: BorderRadius.circular(Radii.lg),
             child: Container(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.all(Insets.md),
               decoration: BoxDecoration(
-                color: AppColors.primaryIndigo.withValues(alpha: isDark ? 0.15 : 0.08),
-                borderRadius: BorderRadius.circular(20),
+                color: palette.surface,
+                borderRadius: BorderRadius.circular(Radii.lg),
                 border: Border.all(
-                  color: AppColors.primaryIndigo.withValues(alpha: 0.4),
+                  color: palette.indigo.withValues(alpha: 0.4),
                   width: 1.5,
                 ),
               ),
               child: Row(
                 children: [
                   Container(
-                    padding: const EdgeInsets.all(12),
+                    padding: const EdgeInsets.all(10),
                     decoration: BoxDecoration(
-                      color: AppColors.primaryIndigo.withValues(alpha: 0.2),
+                      color: palette.indigo.withValues(alpha: 0.15),
                       shape: BoxShape.circle,
                     ),
-                    child: const Icon(
+                    child: Icon(
                       Icons.accessibility_new_rounded,
-                      color: AppColors.primaryIndigo,
-                      size: 26,
+                      color: palette.indigo,
+                      size: 24,
                     ),
                   ),
-                  const SizedBox(width: 14),
+                  const SizedBox(width: Insets.md),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text(
-                          'MANDATORY PRE-WORKOUT APT ROUTINE',
-                          style: TextStyle(
-                            fontSize: 10,
-                            fontWeight: FontWeight.w900,
-                            color: AppColors.primaryIndigo,
-                            letterSpacing: 0.6,
-                          ),
+                        const VBadge(
+                          label: 'PRE-WORKOUT APT ROUTINE',
+                          variant: VBadgeVariant.indigo,
                         ),
-                        const SizedBox(height: 2),
+                        const SizedBox(height: 4),
                         const Text(
                           '10-Min Pelvic Alignment',
                           style: TextStyle(
-                            fontSize: 15,
+                            fontSize: 14,
                             fontWeight: FontWeight.bold,
                           ),
                         ),
@@ -355,18 +326,18 @@ class _DashboardTab extends ConsumerWidget {
                           '90/90 Breathing • Couch Stretch • Deadbug • Glute Bridge',
                           style: TextStyle(
                             fontSize: 11,
-                            color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
+                            color: palette.textMuted,
                           ),
                         ),
                       ],
                     ),
                   ),
-                  const Icon(Icons.arrow_forward_ios_rounded, size: 14, color: AppColors.primaryIndigo),
+                  Icon(Icons.arrow_forward_ios_rounded, size: 14, color: palette.indigo),
                 ],
               ),
             ),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: Insets.md),
 
           // TWO-COLUMN QUICK STATS (NUTRITION & SUPPLEMENTS)
           Row(
@@ -374,13 +345,11 @@ class _DashboardTab extends ConsumerWidget {
               // Nutrition Card
               Expanded(
                 child: Container(
-                  padding: const EdgeInsets.all(14),
+                  padding: const EdgeInsets.all(Insets.md),
                   decoration: BoxDecoration(
-                    color: isDark ? AppColors.darkCard : AppColors.lightCard,
-                    borderRadius: BorderRadius.circular(18),
-                    border: Border.all(
-                      color: isDark ? AppColors.darkCardBorder : AppColors.lightCardBorder,
-                    ),
+                    color: palette.surface,
+                    borderRadius: BorderRadius.circular(Radii.lg),
+                    border: Border.all(color: palette.border),
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -388,74 +357,64 @@ class _DashboardTab extends ConsumerWidget {
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          const Icon(Icons.restaurant_rounded, size: 18, color: AppColors.primaryOrange),
-                          Text(
-                            biometrics.isRestDay ? 'REST DAY' : 'TRAINING',
-                            style: const TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: AppColors.primaryOrange),
+                          Icon(Icons.restaurant_rounded, size: 16, color: palette.orange),
+                          VBadge(
+                            label: biometrics.isRestDay ? 'REST' : 'TRAINING',
+                            variant: VBadgeVariant.orange,
                           ),
                         ],
                       ),
-                      const SizedBox(height: 10),
-                      Text(
-                        '${loggedCals.toInt()} / ${targetCals.toInt()}',
-                        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                      ),
-                      const Text(
-                        'Calories Logged',
-                        style: TextStyle(fontSize: 11, color: Colors.grey),
-                      ),
-                      const SizedBox(height: 8),
-                      LinearProgressIndicator(
-                        value: (targetCals > 0) ? (loggedCals / targetCals).clamp(0.0, 1.0) : 0,
-                        backgroundColor: isDark ? Colors.white10 : Colors.black12,
-                        valueColor: const AlwaysStoppedAnimation<Color>(AppColors.primaryOrange),
-                        borderRadius: BorderRadius.circular(4),
+                      const SizedBox(height: Insets.sm),
+                      Center(
+                        child: VProgressRing(
+                          progress: calProgress,
+                          size: 58,
+                          strokeWidth: 4.5,
+                          color: palette.orange,
+                          valueText: '${loggedCals.toInt()}',
+                          label: 'Calories',
+                          targetText: '/ ${targetCals.toInt()} kcal',
+                        ),
                       ),
                     ],
                   ),
                 ),
               ),
-              const SizedBox(width: 12),
+              const SizedBox(width: Insets.md),
 
               // Supplements Card
               Expanded(
                 child: Container(
-                  padding: const EdgeInsets.all(14),
+                  padding: const EdgeInsets.all(Insets.md),
                   decoration: BoxDecoration(
-                    color: isDark ? AppColors.darkCard : AppColors.lightCard,
-                    borderRadius: BorderRadius.circular(18),
-                    border: Border.all(
-                      color: isDark ? AppColors.darkCardBorder : AppColors.lightCardBorder,
-                    ),
+                    color: palette.surface,
+                    borderRadius: BorderRadius.circular(Radii.lg),
+                    border: Border.all(color: palette.border),
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Row(
+                      Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Icon(Icons.medication_rounded, size: 18, color: AppColors.primaryCyan),
-                          Text(
-                            'MUTUAL LOCK',
-                            style: TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: AppColors.warningGold),
+                          Icon(Icons.medication_rounded, size: 16, color: palette.accent),
+                          const VBadge(
+                            label: 'LOCKED',
+                            variant: VBadgeVariant.warning,
                           ),
                         ],
                       ),
-                      const SizedBox(height: 10),
-                      Text(
-                        '$completedSupps of $totalSupps Doses',
-                        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                      ),
-                      const Text(
-                        'Clinical Timing Active',
-                        style: TextStyle(fontSize: 11, color: Colors.grey),
-                      ),
-                      const SizedBox(height: 8),
-                      LinearProgressIndicator(
-                        value: (totalSupps > 0) ? (completedSupps / totalSupps).clamp(0.0, 1.0) : 0,
-                        backgroundColor: isDark ? Colors.white10 : Colors.black12,
-                        valueColor: const AlwaysStoppedAnimation<Color>(AppColors.primaryCyan),
-                        borderRadius: BorderRadius.circular(4),
+                      const SizedBox(height: Insets.sm),
+                      Center(
+                        child: VProgressRing(
+                          progress: suppProgress,
+                          size: 58,
+                          strokeWidth: 4.5,
+                          color: palette.accent,
+                          valueText: '$completedSupps',
+                          label: 'Supplements',
+                          targetText: '/ $totalSupps Doses',
+                        ),
                       ),
                     ],
                   ),
@@ -463,56 +422,93 @@ class _DashboardTab extends ConsumerWidget {
               ),
             ],
           ),
-          const SizedBox(height: 20),
+          const SizedBox(height: Insets.lg),
 
           // Recent Completed Workouts History
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text(
+              Text(
                 'RECENT TRAINING LOGS',
                 style: TextStyle(
                   fontSize: 11,
                   fontWeight: FontWeight.w900,
                   letterSpacing: 0.8,
-                  color: AppColors.primaryVolt,
+                  color: palette.accent,
                 ),
               ),
               Text(
                 '${workout.history.length} Sessions Logged',
-                style: const TextStyle(fontSize: 11, color: Colors.grey),
+                style: TextStyle(fontSize: 11, color: palette.textMuted),
               ),
             ],
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: Insets.sm),
 
-          ...workout.history.take(3).map((hist) {
-            return Card(
-              margin: const EdgeInsets.only(bottom: 10),
-              child: ListTile(
-                leading: CircleAvatar(
-                  backgroundColor: AppColors.primaryVolt.withValues(alpha: 0.15),
-                  child: const Icon(Icons.check_rounded, color: AppColors.primaryVolt, size: 20),
-                ),
-                title: Text(
-                  hist.dayTitle,
-                  style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
-                ),
-                subtitle: Text(
-                  '${hist.totalSets} Sets • ${hist.totalVolumeKg.toInt()} kg Total Volume',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
-                  ),
-                ),
-                trailing: Text(
-                  '${hist.durationMinutes}m',
-                  style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.primaryCyan),
+          if (workout.history.isEmpty)
+            Container(
+              padding: const EdgeInsets.all(Insets.lg),
+              decoration: BoxDecoration(
+                color: palette.surface,
+                borderRadius: BorderRadius.circular(Radii.lg),
+                border: Border.all(color: palette.border),
+              ),
+              child: Center(
+                child: Text(
+                  'No workouts completed yet. Start your first session above!',
+                  style: TextStyle(fontSize: 12, color: palette.textMuted),
                 ),
               ),
-            );
-          }),
-          const SizedBox(height: 24),
+            )
+          else
+            ...workout.history.take(3).map((hist) {
+              return Container(
+                margin: const EdgeInsets.only(bottom: Insets.sm),
+                padding: const EdgeInsets.all(Insets.md),
+                decoration: BoxDecoration(
+                  color: palette.surface,
+                  borderRadius: BorderRadius.circular(Radii.md),
+                  border: Border.all(color: palette.border),
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(Insets.sm),
+                      decoration: BoxDecoration(
+                        color: palette.accent.withValues(alpha: 0.15),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(Icons.check_rounded, color: palette.accent, size: 18),
+                    ),
+                    const SizedBox(width: Insets.md),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            hist.dayTitle,
+                            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            '${hist.totalSets} Sets • ${hist.totalVolumeKg.toInt()} kg Total Volume',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: palette.textSecondary,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    VBadge(
+                      label: '${hist.durationMinutes}m',
+                      variant: VBadgeVariant.accent,
+                    ),
+                  ],
+                ),
+              );
+            }),
+          const SizedBox(height: Insets.xl),
         ],
       ),
     );
@@ -543,13 +539,20 @@ class _NutritionAndSupplementsTabState extends State<_NutritionAndSupplementsTab
 
   @override
   Widget build(BuildContext context) {
+    final palette = context.palette;
+
     return Scaffold(
+      backgroundColor: palette.background,
       appBar: AppBar(
         title: const Text('Nutrition & Supplements'),
+        backgroundColor: palette.surface,
+        elevation: 0,
         bottom: TabBar(
           controller: _tabController,
-          indicatorColor: AppColors.primaryVolt,
-          labelColor: AppColors.primaryVolt,
+          indicatorColor: palette.accent,
+          labelColor: palette.accent,
+          unselectedLabelColor: palette.textSecondary,
+          indicatorWeight: 3,
           tabs: const [
             Tab(text: 'Food Inventory & Macros'),
             Tab(text: 'Clinical Supplements'),

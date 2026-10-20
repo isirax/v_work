@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../core/constants/app_colors.dart';
 import '../../../core/providers/workout_provider.dart';
+import '../../../core/theme/app_palette.dart';
+import '../../../core/widgets/common/v_badge.dart';
+import '../../../core/widgets/common/v_callout.dart';
 import '../models/exercise.dart';
 
 class ExerciseSwapModal extends ConsumerWidget {
@@ -28,18 +30,26 @@ class ExerciseSwapModal extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final palette = context.palette;
+    final isDark = context.isDark;
     final activeAltId = exercise.activeAlternativeId;
 
     return Container(
-      padding: const EdgeInsets.only(top: 12, left: 20, right: 20, bottom: 32),
+      padding: const EdgeInsets.only(top: Insets.sm, left: Insets.lg, right: Insets.lg, bottom: Insets.xl),
       decoration: BoxDecoration(
-        color: isDark ? AppColors.darkCard : AppColors.lightCard,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+        color: palette.surface,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(Radii.xl)),
         border: Border.all(
-          color: isDark ? AppColors.darkCardBorder : AppColors.lightCardBorder,
+          color: palette.border,
           width: 1,
         ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: isDark ? 0.4 : 0.1),
+            blurRadius: 24,
+            offset: const Offset(0, -6),
+          ),
+        ],
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -49,31 +59,31 @@ class ExerciseSwapModal extends ConsumerWidget {
           Center(
             child: Container(
               width: 44,
-              height: 5,
+              height: 4,
               decoration: BoxDecoration(
-                color: isDark ? Colors.white24 : Colors.black12,
-                borderRadius: BorderRadius.circular(3),
+                color: palette.textMuted.withValues(alpha: 0.3),
+                borderRadius: BorderRadius.circular(2),
               ),
             ),
           ),
-          const SizedBox(height: 18),
+          const SizedBox(height: Insets.md),
 
           // Header
           Row(
             children: [
               Container(
-                padding: const EdgeInsets.all(10),
+                padding: const EdgeInsets.all(Insets.sm),
                 decoration: BoxDecoration(
-                  color: AppColors.primaryVolt.withValues(alpha: 0.15),
+                  color: palette.accent.withValues(alpha: 0.15),
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(
+                child: Icon(
                   Icons.swap_horiz_rounded,
-                  color: AppColors.primaryVolt,
-                  size: 24,
+                  color: palette.accent,
+                  size: 22,
                 ),
               ),
-              const SizedBox(width: 14),
+              const SizedBox(width: Insets.sm),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -83,13 +93,15 @@ class ExerciseSwapModal extends ConsumerWidget {
                       style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
+                        letterSpacing: -0.2,
                       ),
                     ),
+                    const SizedBox(height: 2),
                     Text(
                       'Original: ${exercise.name}',
                       style: TextStyle(
-                        fontSize: 13,
-                        color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
+                        fontSize: 12,
+                        color: palette.textSecondary,
                       ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
@@ -99,23 +111,30 @@ class ExerciseSwapModal extends ConsumerWidget {
               ),
               IconButton(
                 onPressed: () => Navigator.pop(context),
-                icon: const Icon(Icons.close_rounded),
+                icon: Icon(Icons.close_rounded, color: palette.textSecondary, size: 20),
+                style: IconButton.styleFrom(
+                  backgroundColor: palette.surfaceElevated,
+                  shape: const CircleBorder(),
+                  padding: const EdgeInsets.all(Insets.xs),
+                ),
               ),
             ],
           ),
-          const SizedBox(height: 20),
+          const SizedBox(height: Insets.md),
 
           // Revert to Baseline option if currently swapped
           if (exercise.isSwapped) ...[
             _buildOptionCard(
               context: context,
+              palette: palette,
+              isDark: isDark,
+              badge: const VBadge(label: 'PRIMARY BASELINE', variant: VBadgeVariant.accent),
               title: 'Revert to Primary Baseline',
               subtitle: exercise.name,
               equipment: exercise.equipment,
               biomechanicalCue: exercise.biomechanicalCues,
               thumbnailPath: exercise.thumbnailPath,
               isSelected: activeAltId == null,
-              isDark: isDark,
               onTap: () {
                 ref.read(workoutProvider.notifier).swapExercise(
                       dayIndex: dayIndex,
@@ -125,13 +144,13 @@ class ExerciseSwapModal extends ConsumerWidget {
                 Navigator.pop(context);
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
-                    content: Text('Reverted to ${exercise.name}'),
+                    content: Text('Reverted to primary baseline: ${exercise.name}'),
                     behavior: SnackBarBehavior.floating,
                   ),
                 );
               },
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: Insets.sm),
           ],
 
           // List of Alternatives
@@ -141,17 +160,21 @@ class ExerciseSwapModal extends ConsumerWidget {
             final isSelected = alt.id == activeAltId;
 
             return Padding(
-              padding: const EdgeInsets.only(bottom: 12),
+              padding: const EdgeInsets.only(bottom: Insets.sm),
               child: _buildOptionCard(
                 context: context,
-                badge: 'ALTERNATIVE ${index + 1}',
+                palette: palette,
+                isDark: isDark,
+                badge: VBadge(
+                  label: 'ALT ${index + 1}',
+                  variant: isSelected ? VBadgeVariant.accent : VBadgeVariant.cyan,
+                ),
                 title: alt.name,
                 subtitle: alt.description,
                 equipment: alt.equipment,
                 biomechanicalCue: alt.biomechanicalCue,
                 thumbnailPath: alt.thumbnailPath,
                 isSelected: isSelected,
-                isDark: isDark,
                 onTap: () {
                   ref.read(workoutProvider.notifier).swapExercise(
                         dayIndex: dayIndex,
@@ -176,150 +199,134 @@ class ExerciseSwapModal extends ConsumerWidget {
 
   Widget _buildOptionCard({
     required BuildContext context,
-    String? badge,
+    required AppPalette palette,
+    required bool isDark,
+    Widget? badge,
     required String title,
     required String subtitle,
     required String equipment,
     required String biomechanicalCue,
     String? thumbnailPath,
     required bool isSelected,
-    required bool isDark,
     required VoidCallback onTap,
   }) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(16),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: isSelected
-              ? AppColors.primaryVolt.withValues(alpha: isDark ? 0.15 : 0.12)
-              : (isDark ? AppColors.darkCardElevated : AppColors.lightCardElevated),
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(Radii.lg),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          padding: const EdgeInsets.all(Insets.md),
+          decoration: BoxDecoration(
             color: isSelected
-                ? AppColors.primaryVolt
-                : (isDark ? AppColors.darkCardBorder : AppColors.lightCardBorder),
-            width: isSelected ? 2 : 1,
+                ? palette.accent.withValues(alpha: isDark ? 0.12 : 0.08)
+                : palette.surfaceElevated,
+            borderRadius: BorderRadius.circular(Radii.lg),
+            border: Border.all(
+              color: isSelected ? palette.accent : palette.border,
+              width: isSelected ? 1.5 : 1,
+            ),
           ),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                if (thumbnailPath != null && thumbnailPath.isNotEmpty) ...[
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(8),
-                    child: Container(
-                      width: 44,
-                      height: 44,
-                      color: isDark ? Colors.black45 : Colors.white60,
-                      child: Image.asset(
-                        thumbnailPath,
-                        width: 44,
-                        height: 44,
-                        fit: BoxFit.cover,
-                        errorBuilder: (ctx, err, st) => const Icon(
-                          Icons.fitness_center_rounded,
-                          size: 20,
-                          color: AppColors.primaryVolt,
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                ],
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      if (badge != null)
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                          margin: const EdgeInsets.only(bottom: 4),
-                          decoration: BoxDecoration(
-                            color: AppColors.primaryCyan.withValues(alpha: 0.2),
-                            borderRadius: BorderRadius.circular(6),
-                          ),
-                          child: Text(
-                            badge,
-                            style: const TextStyle(
-                              fontSize: 10,
-                              fontWeight: FontWeight.bold,
-                              color: AppColors.primaryCyan,
-                              letterSpacing: 0.5,
-                            ),
-                          ),
-                        ),
-                      Text(
-                        title,
-                        style: const TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                if (isSelected)
-                  const Icon(
-                    Icons.check_circle_rounded,
-                    color: AppColors.primaryVolt,
-                    size: 20,
-                  ),
-              ],
-            ),
-            const SizedBox(height: 6),
-            Text(
-              subtitle,
-              style: TextStyle(
-                fontSize: 13,
-                color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Row(
-              children: [
-                const Icon(Icons.fitness_center_outlined, size: 13, color: AppColors.primaryIndigo),
-                const SizedBox(width: 5),
-                Text(
-                  equipment,
-                  style: const TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.primaryIndigo,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 6),
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: isDark ? const Color(0x33000000) : const Color(0x0A000000),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Row(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Icon(Icons.accessibility_new_rounded, size: 14, color: AppColors.primaryVolt),
-                  const SizedBox(width: 6),
-                  Expanded(
-                    child: Text(
-                      'Cue: $biomechanicalCue',
-                      style: TextStyle(
-                        fontSize: 11,
-                        fontStyle: FontStyle.italic,
-                        color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
+                  if (thumbnailPath != null && thumbnailPath.isNotEmpty) ...[
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(Radii.md),
+                      child: Container(
+                        width: 46,
+                        height: 46,
+                        color: isDark ? Colors.black38 : Colors.grey.shade200,
+                        child: Image.asset(
+                          thumbnailPath,
+                          width: 46,
+                          height: 46,
+                          fit: BoxFit.cover,
+                          errorBuilder: (ctx, err, st) => Icon(
+                            Icons.fitness_center_rounded,
+                            size: 20,
+                            color: palette.accent,
+                          ),
+                        ),
                       ),
                     ),
+                    const SizedBox(width: Insets.sm),
+                  ],
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        if (badge != null) ...[
+                          badge,
+                          const SizedBox(height: 4),
+                        ],
+                        Text(
+                          title,
+                          style: const TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.bold,
+                            letterSpacing: -0.1,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: Insets.xs),
+                  AnimatedContainer(
+                    duration: const Duration(milliseconds: 200),
+                    width: 22,
+                    height: 22,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: isSelected ? palette.accent : Colors.transparent,
+                      border: Border.all(
+                        color: isSelected ? palette.accent : palette.textMuted.withValues(alpha: 0.4),
+                        width: 1.5,
+                      ),
+                    ),
+                    child: isSelected
+                        ? Icon(
+                            Icons.check_rounded,
+                            size: 15,
+                            color: palette.onAccent,
+                          )
+                        : null,
                   ),
                 ],
               ),
-            ),
-          ],
+              const SizedBox(height: Insets.xs),
+              Text(
+                subtitle,
+                style: TextStyle(
+                  fontSize: 12.5,
+                  color: palette.textSecondary,
+                  height: 1.35,
+                ),
+              ),
+              const SizedBox(height: Insets.xs),
+              Wrap(
+                spacing: 6,
+                crossAxisAlignment: WrapCrossAlignment.center,
+                children: [
+                  VBadge(
+                    label: equipment,
+                    icon: Icons.fitness_center_outlined,
+                    variant: VBadgeVariant.indigo,
+                  ),
+                ],
+              ),
+              const SizedBox(height: Insets.xs),
+              VCallout(
+                message: biomechanicalCue,
+                icon: Icons.accessibility_new_rounded,
+                variant: VCalloutVariant.info,
+              ),
+            ],
+          ),
         ),
       ),
     );

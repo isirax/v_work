@@ -52,6 +52,15 @@ void main() {
             final altFile = File(alt.assetAnimationPath!);
             expect(altFile.existsSync(), isTrue,
                 reason: 'Animation file ${alt.assetAnimationPath} must exist on disk');
+
+            // Verify alternative has downloaded local MP4 video
+            expect(alt.assetVideoPath != null && alt.assetVideoPath!.endsWith('.mp4'), isTrue,
+                reason: 'Alternative ${alt.id} (${alt.name}) must have an .mp4 detailed video path');
+            final altVideoFile = File(alt.assetVideoPath!);
+            expect(altVideoFile.existsSync(), isTrue,
+                reason: 'Alternative video file ${alt.assetVideoPath} must exist on disk');
+            expect(altVideoFile.lengthSync(), greaterThan(10000),
+                reason: 'Alternative video file ${alt.assetVideoPath} must not be empty');
           }
         }
       }
@@ -79,14 +88,15 @@ void main() {
       }
     });
 
-    test('Exercise swapping switches activeAssetAnimationPath and activeThumbnailPath', () {
+    test('Exercise swapping switches activeAssetAnimationPath, thumbnail, and active video', () {
       final days = WorkoutDatabase.getDefaultSplit();
-      final original = days[0].exercises[0]; // d1_ex1
-      final alt = original.alternatives[0];
+      final original = days[0].exercises[0]; // d1_ex1: Chest-Supported Row
+      final alt = original.alternatives[0];  // Seated Neutral-Grip Cable Row
 
       expect(original.isSwapped, isFalse);
       expect(original.activeAssetAnimationPath, original.assetAnimationPath);
       expect(original.activeAssetVideoPath, original.assetVideoPath);
+      expect(original.hasDetailedLocalVideo, isTrue);
 
       final swapped = original.copyWith(activeAlternativeId: alt.id);
       expect(swapped.isSwapped, isTrue);
@@ -94,6 +104,23 @@ void main() {
       expect(swapped.activeAssetAnimationPath, alt.assetAnimationPath);
       expect(swapped.activeOnlineHdVideoUrl, alt.onlineHdVideoUrl);
       expect(swapped.activeThumbnailPath, alt.thumbnailPath);
+
+      // Verify the critical bug fix: Video MUST switch to the downloaded MP4 and NOT keep showing main exercise's video!
+      expect(swapped.activeAssetVideoPath, isNot(original.assetVideoPath),
+          reason: 'Swapped exercise must NOT show the primary exercise video');
+      expect(swapped.activeAssetVideoPath, 'assets/videos/seated_cable_row.mp4');
+      expect(swapped.hasDetailedLocalVideo, isTrue);
+
+      // Also verify an alternative that has a dedicated MP4 (e.g. Reverse Pec Deck)
+      final facePulls = days[0].exercises[3]; // d1_ex4: Face Pulls
+      final reversePecDeckAlt = facePulls.alternatives.firstWhere((a) => a.id == 'd1_ex4_alt1');
+      final swappedWithMp4 = facePulls.copyWith(activeAlternativeId: reversePecDeckAlt.id);
+
+      expect(swappedWithMp4.isSwapped, isTrue);
+      expect(swappedWithMp4.activeName, reversePecDeckAlt.name);
+      expect(swappedWithMp4.activeAssetVideoPath, 'assets/videos/reverse_pec_deck.mp4');
+      expect(swappedWithMp4.hasDetailedLocalVideo, isTrue);
+      expect(swappedWithMp4.activeAssetVideoPath, isNot(facePulls.assetVideoPath));
     });
   });
 }

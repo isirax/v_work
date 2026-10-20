@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:video_player/video_player.dart';
-import 'package:url_launcher/url_launcher.dart';
 import '../constants/app_colors.dart';
+import '../utils/youtube_launcher.dart';
 
 class WorkoutVideoPlayer extends StatefulWidget {
   final String assetVideoPath;
@@ -123,6 +123,9 @@ class _WorkoutVideoPlayerState extends State<WorkoutVideoPlayer> {
         }
       } else {
         // Local asset playback
+        if (widget.assetVideoPath.isEmpty || !widget.assetVideoPath.toLowerCase().endsWith('.mp4')) {
+          throw Exception('Local video file not found for this exercise');
+        }
         final localController = VideoPlayerController.asset(
           widget.assetVideoPath,
           videoPlayerOptions: VideoPlayerOptions(mixWithOthers: true),
@@ -224,20 +227,9 @@ class _WorkoutVideoPlayerState extends State<WorkoutVideoPlayer> {
   }
 
   Future<void> _launchYouTubeTutorial() async {
-    final query = widget.exerciseTitle != null
-        ? '${widget.exerciseTitle} exercise form tutorial'
-        : 'workout exercise form tutorial';
-    final url = Uri.parse(
-        'https://www.youtube.com/results?search_query=${Uri.encodeComponent(query)}');
-
-    try {
-      if (await canLaunchUrl(url)) {
-        await launchUrl(url, mode: LaunchMode.externalApplication);
-      }
-    } catch (_) {
-      // Fallback to web browser view
-      await launchUrl(url, mode: LaunchMode.platformDefault);
-    }
+    await YouTubeLauncher.launchExerciseTutorial(
+      widget.exerciseTitle ?? 'workout',
+    );
   }
 
   String _formatDuration(Duration duration) {

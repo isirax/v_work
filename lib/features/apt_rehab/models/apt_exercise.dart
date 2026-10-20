@@ -21,6 +21,7 @@ class AptExercise {
   final String assetAnimationPath;
   final String assetVideoPath;
   final String? onlineHdVideoUrl;
+  final String? thumbnailPath;
 
   const AptExercise({
     required this.id,
@@ -38,5 +39,21 @@ class AptExercise {
     required this.assetAnimationPath,
     required this.assetVideoPath,
     this.onlineHdVideoUrl,
+    this.thumbnailPath,
   });
+
+  bool get hasDownloadedVideo {
+    return assetVideoPath.isNotEmpty && assetVideoPath.toLowerCase().endsWith('.mp4');
+  }
+
+  String get resolvedThumbnailPath {
+    if (thumbnailPath != null && thumbnailPath!.isNotEmpty) {
+      return thumbnailPath!;
+    }
+    // Handle special illustration key mapping if needed
+    if (visualIllustration == '9090_breathing') {
+      return 'assets/exercises/thumbs/breathing_9090.jpg';
+    }
+    return 'assets/exercises/thumbs/$visualIllustration.jpg';
+  }
 }

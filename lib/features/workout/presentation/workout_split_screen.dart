@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../core/constants/app_colors.dart';
 import '../../../core/providers/workout_provider.dart';
+import '../../../core/theme/app_palette.dart';
+import '../../../core/utils/youtube_launcher.dart';
+import '../../../core/widgets/common/v_badge.dart';
+import '../../../core/widgets/common/v_callout.dart';
 import '../../../core/widgets/exercise_illustration.dart';
 import '../models/exercise.dart';
 import 'active_workout_screen.dart';
@@ -18,7 +21,7 @@ class WorkoutSplitScreen extends ConsumerWidget {
     final split = workout.split;
     final selectedDayIndex = workout.selectedDayIndex;
     final activeDay = workout.selectedDay;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final palette = context.palette;
 
     return Scaffold(
       appBar: AppBar(
@@ -47,16 +50,30 @@ class WorkoutSplitScreen extends ConsumerWidget {
               );
             },
             child: Container(
-              margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              margin: const EdgeInsets.symmetric(horizontal: Insets.lg, vertical: Insets.xs),
+              padding: const EdgeInsets.symmetric(horizontal: Insets.md, vertical: 10),
               decoration: BoxDecoration(
-                gradient: AppColors.voltCyanGradient,
-                borderRadius: BorderRadius.circular(14),
+                gradient: palette.heroGradient,
+                borderRadius: BorderRadius.circular(Radii.md),
+                boxShadow: [
+                  BoxShadow(
+                    color: palette.accent.withValues(alpha: context.isDark ? 0.25 : 0.15),
+                    blurRadius: 10,
+                    offset: const Offset(0, 3),
+                  ),
+                ],
               ),
               child: Row(
                 children: [
-                  const Icon(Icons.fitness_center_rounded, color: Colors.black, size: 20),
-                  const SizedBox(width: 10),
+                  Container(
+                    padding: const EdgeInsets.all(6),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.18),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(Icons.fitness_center_rounded, color: Colors.white, size: 18),
+                  ),
+                  const SizedBox(width: Insets.md),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -66,7 +83,7 @@ class WorkoutSplitScreen extends ConsumerWidget {
                           style: const TextStyle(
                             fontSize: 11,
                             fontWeight: FontWeight.w900,
-                            color: Colors.black,
+                            color: Colors.white,
                             letterSpacing: 0.4,
                           ),
                           maxLines: 1,
@@ -74,16 +91,20 @@ class WorkoutSplitScreen extends ConsumerWidget {
                         ),
                         Text(
                           'Week ${workout.currentWeek} • ${workout.currentPhase.repRangeGuide}',
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 11,
                             fontWeight: FontWeight.w600,
-                            color: Colors.black87,
+                            color: Colors.white.withValues(alpha: 0.9),
                           ),
                         ),
                       ],
                     ),
                   ),
-                  const Icon(Icons.arrow_forward_ios_rounded, color: Colors.black54, size: 14),
+                  Icon(
+                    Icons.arrow_forward_ios_rounded,
+                    color: Colors.white.withValues(alpha: 0.7),
+                    size: 14,
+                  ),
                 ],
               ),
             ),
@@ -92,7 +113,7 @@ class WorkoutSplitScreen extends ConsumerWidget {
           // Day Selection Tabs (Day 1 to 5)
           SingleChildScrollView(
             scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            padding: const EdgeInsets.symmetric(horizontal: Insets.lg, vertical: Insets.sm),
             child: Row(
               children: List.generate(split.length, (index) {
                 final day = split[index];
@@ -107,20 +128,18 @@ class WorkoutSplitScreen extends ConsumerWidget {
                       'Day ${day.dayNumber}',
                       style: TextStyle(
                         fontWeight: FontWeight.bold,
-                        color: isSelected
-                            ? (isDark ? Colors.black : Colors.white)
-                            : (isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary),
+                        fontSize: 13,
+                        color: isSelected ? palette.onAccent : palette.textSecondary,
                       ),
                     ),
-                    backgroundColor: isDark ? AppColors.darkCard : AppColors.lightCard,
-                    selectedColor: isDark ? AppColors.primaryVolt : const Color(0xFF00C875),
+                    backgroundColor: palette.surface,
+                    selectedColor: palette.accent,
                     side: BorderSide(
-                      color: isSelected
-                          ? AppColors.primaryVolt
-                          : (isDark ? AppColors.darkCardBorder : AppColors.lightCardBorder),
+                      color: isSelected ? palette.accent : palette.border,
+                      width: isSelected ? 1.5 : 1.0,
                     ),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                    onSelected: (selected) {
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(Radii.md)),
+                    onSelected: (_) {
                       ref.read(workoutProvider.notifier).selectDay(index);
                     },
                   ),
@@ -132,31 +151,21 @@ class WorkoutSplitScreen extends ConsumerWidget {
           // Active Day Details & Exercises List
           Expanded(
             child: ListView(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              padding: const EdgeInsets.symmetric(horizontal: Insets.lg, vertical: Insets.xs),
               children: [
                 // Day Overview Card
                 Card(
                   child: Padding(
-                    padding: const EdgeInsets.all(16),
+                    padding: const EdgeInsets.all(Insets.lg),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Row(
                           children: [
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                              decoration: BoxDecoration(
-                                color: AppColors.primaryIndigo.withValues(alpha: 0.15),
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: Text(
-                                'DAY ${activeDay.dayNumber}',
-                                style: const TextStyle(
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.w900,
-                                  color: AppColors.primaryIndigo,
-                                ),
-                              ),
+                            VBadge(
+                              label: 'DAY ${activeDay.dayNumber}',
+                              variant: VBadgeVariant.indigo,
+                              fontSize: 10,
                             ),
                             const SizedBox(width: 8),
                             Expanded(
@@ -175,34 +184,24 @@ class WorkoutSplitScreen extends ConsumerWidget {
                           activeDay.subtitle,
                           style: TextStyle(
                             fontSize: 13,
-                            color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
+                            color: palette.textSecondary,
                           ),
                         ),
-                        const Divider(height: 18),
-                        Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Icon(Icons.shield_outlined, size: 16, color: AppColors.primaryVolt),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: Text(
-                                activeDay.biomechanicalFocus,
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary,
-                                ),
-                              ),
-                            ),
-                          ],
+                        const Divider(height: 20),
+                        VCallout(
+                          title: 'POSTURE & APT FOCUS',
+                          message: activeDay.biomechanicalFocus,
+                          icon: Icons.shield_outlined,
+                          variant: VCalloutVariant.accent,
                         ),
                       ],
                     ),
                   ),
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: Insets.md),
 
                 // Start Session CTA
-                ElevatedButton.icon(
+                FilledButton.icon(
                   onPressed: () {
                     ref.read(workoutProvider.notifier).startWorkoutSession(selectedDayIndex);
                     Navigator.push(
@@ -210,10 +209,21 @@ class WorkoutSplitScreen extends ConsumerWidget {
                       MaterialPageRoute(builder: (_) => const ActiveWorkoutScreen()),
                     );
                   },
-                  icon: const Icon(Icons.play_arrow_rounded),
-                  label: Text('Start Day ${activeDay.dayNumber} Session'),
+                  icon: const Icon(Icons.play_arrow_rounded, size: 22),
+                  label: Text(
+                    'Start Day ${activeDay.dayNumber} Session',
+                    style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+                  ),
+                  style: FilledButton.styleFrom(
+                    backgroundColor: palette.accent,
+                    foregroundColor: palette.onAccent,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(Radii.md),
+                    ),
+                  ),
                 ),
-                const SizedBox(height: 18),
+                const SizedBox(height: Insets.lg),
 
                 // Section Header
                 Row(
@@ -221,32 +231,30 @@ class WorkoutSplitScreen extends ConsumerWidget {
                   children: [
                     Text(
                       'PRESCRIBED EXERCISES (${activeDay.exercises.length})',
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 12,
-                        fontWeight: FontWeight.w800,
+                        fontWeight: FontWeight.w900,
                         letterSpacing: 0.8,
-                        color: AppColors.primaryCyan,
+                        color: palette.accent,
                       ),
                     ),
-                    const Text(
+                    Text(
                       'Tap to View / Swap',
-                      style: TextStyle(fontSize: 11, color: AppColors.darkTextMuted),
+                      style: TextStyle(fontSize: 11, color: palette.textMuted),
                     ),
                   ],
                 ),
-                const SizedBox(height: 10),
+                const SizedBox(height: Insets.sm),
 
                 // Exercises Cards
                 ...activeDay.exercises.asMap().entries.map((entry) {
                   final exIndex = entry.key;
                   final exercise = entry.value;
 
-                  return _buildExerciseSplitCard(
-                    context: context,
+                  return _ExerciseSplitCard(
                     index: exIndex + 1,
                     exercise: exercise,
                     dayIndex: selectedDayIndex,
-                    isDark: isDark,
                   );
                 }),
                 const SizedBox(height: 30),
@@ -257,18 +265,28 @@ class WorkoutSplitScreen extends ConsumerWidget {
       ),
     );
   }
+}
 
-  Widget _buildExerciseSplitCard({
-    required BuildContext context,
-    required int index,
-    required Exercise exercise,
-    required int dayIndex,
-    required bool isDark,
-  }) {
+class _ExerciseSplitCard extends StatelessWidget {
+  final int index;
+  final Exercise exercise;
+  final int dayIndex;
+
+  const _ExerciseSplitCard({
+    required this.index,
+    required this.exercise,
+    required this.dayIndex,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = context.palette;
+    final isDark = context.isDark;
+
     return Card(
-      margin: const EdgeInsets.only(bottom: 14),
+      margin: const EdgeInsets.only(bottom: Insets.md),
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(Insets.lg),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -279,17 +297,17 @@ class WorkoutSplitScreen extends ConsumerWidget {
                 // Exercise Number Badge
                 CircleAvatar(
                   radius: 14,
-                  backgroundColor: AppColors.primaryCyan.withValues(alpha: 0.15),
+                  backgroundColor: palette.accent.withValues(alpha: 0.15),
                   child: Text(
                     '$index',
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.bold,
-                      color: AppColors.primaryCyan,
+                      color: palette.accent,
                     ),
                   ),
                 ),
-                const SizedBox(width: 12),
+                const SizedBox(width: Insets.md),
 
                 // Name & Target
                 Expanded(
@@ -308,7 +326,7 @@ class WorkoutSplitScreen extends ConsumerWidget {
                         exercise.targetMuscle,
                         style: TextStyle(
                           fontSize: 12,
-                          color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
+                          color: palette.textSecondary,
                         ),
                       ),
                     ],
@@ -317,29 +335,19 @@ class WorkoutSplitScreen extends ConsumerWidget {
 
                 // Swapped indicator badge
                 if (exercise.isSwapped)
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
-                    decoration: BoxDecoration(
-                      color: AppColors.primaryOrange.withValues(alpha: 0.15),
-                      borderRadius: BorderRadius.circular(6),
-                    ),
-                    child: const Text(
-                      'SWAPPED',
-                      style: TextStyle(
-                        fontSize: 9,
-                        fontWeight: FontWeight.w900,
-                        color: AppColors.primaryOrange,
-                      ),
-                    ),
+                  const VBadge(
+                    label: 'SWAPPED',
+                    variant: VBadgeVariant.orange,
+                    fontSize: 9,
                   ),
               ],
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: Insets.md),
 
             // Video & Illustration Preview
             InkWell(
               onTap: () => ExerciseDetailModal.show(context, exercise, dayIndex),
-              borderRadius: BorderRadius.circular(16),
+              borderRadius: BorderRadius.circular(Radii.lg),
               child: Stack(
                 children: [
                   if (exercise.activeThumbnailPath.isNotEmpty)
@@ -348,13 +356,11 @@ class WorkoutSplitScreen extends ConsumerWidget {
                       width: double.infinity,
                       decoration: BoxDecoration(
                         color: isDark ? const Color(0xFF0F141F) : const Color(0xFFEDF2F7),
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(
-                          color: isDark ? AppColors.darkCardBorder : AppColors.lightCardBorder,
-                        ),
+                        borderRadius: BorderRadius.circular(Radii.lg),
+                        border: Border.all(color: palette.border),
                       ),
                       child: ClipRRect(
-                        borderRadius: BorderRadius.circular(16),
+                        borderRadius: BorderRadius.circular(Radii.lg),
                         child: Center(
                           child: Image.asset(
                             exercise.activeThumbnailPath,
@@ -381,19 +387,19 @@ class WorkoutSplitScreen extends ConsumerWidget {
                       decoration: BoxDecoration(
                         color: Colors.black.withValues(alpha: 0.8),
                         borderRadius: BorderRadius.circular(6),
-                        border: Border.all(color: AppColors.primaryVolt.withValues(alpha: 0.8), width: 1),
+                        border: Border.all(color: palette.accent.withValues(alpha: 0.8), width: 1),
                       ),
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          const Icon(Icons.play_circle_fill_rounded, size: 13, color: AppColors.primaryVolt),
+                          Icon(Icons.play_circle_fill_rounded, size: 13, color: palette.accent),
                           const SizedBox(width: 4),
                           Text(
                             exercise.hasDownloadedVideo ? 'ANIMATION & FULL VIDEO' : 'HD ANIMATION',
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 9.5,
                               fontWeight: FontWeight.w900,
-                              color: AppColors.primaryVolt,
+                              color: palette.accent,
                               letterSpacing: 0.4,
                             ),
                           ),
@@ -404,59 +410,76 @@ class WorkoutSplitScreen extends ConsumerWidget {
                 ],
               ),
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: Insets.md),
 
             // Parameters Badges Row
-            Row(
+            Wrap(
+              spacing: 6,
+              runSpacing: 6,
               children: [
-                _buildChipBadge('${exercise.defaultSets} Sets', Icons.format_list_numbered, isDark),
-                const SizedBox(width: 6),
-                _buildChipBadge('${exercise.defaultReps} Reps', Icons.repeat, isDark),
-                const SizedBox(width: 6),
-                _buildChipBadge(exercise.defaultRir, Icons.speed, isDark),
-                const SizedBox(width: 6),
-                _buildChipBadge('${exercise.defaultRestSeconds}s Rest', Icons.timer_outlined, isDark),
+                VBadge(
+                  label: '${exercise.defaultSets} Sets',
+                  icon: Icons.format_list_numbered,
+                  variant: VBadgeVariant.cyan,
+                  fontSize: 10,
+                ),
+                VBadge(
+                  label: '${exercise.defaultReps} Reps',
+                  icon: Icons.repeat,
+                  variant: VBadgeVariant.cyan,
+                  fontSize: 10,
+                ),
+                VBadge(
+                  label: exercise.defaultRir,
+                  icon: Icons.speed,
+                  variant: VBadgeVariant.cyan,
+                  fontSize: 10,
+                ),
+                VBadge(
+                  label: '${exercise.defaultRestSeconds}s Rest',
+                  icon: Icons.timer_outlined,
+                  variant: VBadgeVariant.cyan,
+                  fontSize: 10,
+                ),
               ],
             ),
-            const SizedBox(height: 10),
+            const SizedBox(height: Insets.sm),
 
             // Biomechanical Cues snippet
-            Container(
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(
-                color: isDark ? const Color(0x33000000) : const Color(0x0C000000),
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: Row(
-                children: [
-                  const Icon(Icons.shield_outlined, size: 14, color: AppColors.primaryVolt),
-                  const SizedBox(width: 6),
-                  Expanded(
-                    child: Text(
-                      exercise.activeBiomechanicalCue,
-                      style: TextStyle(
-                        fontSize: 11,
-                        color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
-                      ),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                ],
-              ),
+            VCallout(
+              message: exercise.activeBiomechanicalCue,
+              icon: Icons.shield_outlined,
+              variant: VCalloutVariant.accent,
+              padding: const EdgeInsets.all(8),
             ),
-            const SizedBox(height: 10),
+            const SizedBox(height: Insets.sm),
 
             // Actions Row
             Row(
-              mainAxisAlignment: MainAxisAlignment.end,
               children: [
+                OutlinedButton.icon(
+                  onPressed: () => YouTubeLauncher.launchExerciseTutorial(exercise.activeName),
+                  icon: const Icon(Icons.smart_display_rounded, size: 15, color: Color(0xFFFF0000)),
+                  label: const Text(
+                    'YouTube',
+                    style: TextStyle(fontSize: 11, color: Color(0xFFFF0000), fontWeight: FontWeight.bold),
+                  ),
+                  style: OutlinedButton.styleFrom(
+                    side: const BorderSide(color: Color(0xFFFF0000), width: 1),
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                    visualDensity: VisualDensity.compact,
+                  ),
+                ),
+                const Spacer(),
                 OutlinedButton.icon(
                   onPressed: () => ExerciseSwapModal.show(context, dayIndex, exercise),
                   icon: const Icon(Icons.swap_horiz_rounded, size: 16),
-                  label: const Text('Swap Exercise', style: TextStyle(fontSize: 12)),
+                  label: Text(
+                    exercise.isSwapped ? 'Swapped' : 'Swap',
+                    style: const TextStyle(fontSize: 12),
+                  ),
                   style: OutlinedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                     visualDensity: VisualDensity.compact,
                   ),
                 ),
@@ -466,7 +489,7 @@ class WorkoutSplitScreen extends ConsumerWidget {
                   icon: const Icon(Icons.play_circle_outline_rounded, size: 16),
                   label: const Text('Form & Video', style: TextStyle(fontSize: 12)),
                   style: ElevatedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                     visualDensity: VisualDensity.compact,
                   ),
                 ),
@@ -474,30 +497,6 @@ class WorkoutSplitScreen extends ConsumerWidget {
             ),
           ],
         ),
-      ),
-    );
-  }
-
-  Widget _buildChipBadge(String text, IconData icon, bool isDark) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 4),
-      decoration: BoxDecoration(
-        color: isDark ? AppColors.darkCardElevated : AppColors.lightCardElevated,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(
-          color: isDark ? AppColors.darkCardBorder : AppColors.lightCardBorder,
-        ),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 12, color: AppColors.primaryCyan),
-          const SizedBox(width: 4),
-          Text(
-            text,
-            style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold),
-          ),
-        ],
       ),
     );
   }

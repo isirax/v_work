@@ -3,6 +3,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/providers/biometrics_provider.dart';
 import '../../../core/providers/nutrition_provider.dart';
+import '../../../core/theme/app_palette.dart';
+import '../../../core/widgets/common/v_badge.dart';
+import '../../../core/widgets/common/v_callout.dart';
+import '../../../core/widgets/common/v_checkbox.dart';
+import '../../../core/widgets/common/v_progress_ring.dart';
 import '../models/food_item.dart';
 
 class NutritionScreen extends ConsumerWidget {
@@ -12,7 +17,8 @@ class NutritionScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final biometrics = ref.watch(biometricsProvider);
     final foodItems = ref.watch(nutritionProvider);
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final palette = context.palette;
+    final isDark = context.isDark;
 
     // Calculate current logged totals
     double loggedCalories = 0;
@@ -40,8 +46,11 @@ class NutritionScreen extends ConsumerWidget {
     final fProgress = (targetFats > 0) ? (loggedFats / targetFats).clamp(0.0, 1.0) : 0.0;
 
     return Scaffold(
+      backgroundColor: palette.background,
       appBar: AppBar(
         title: const Text('Nutrition & Meal Engine'),
+        backgroundColor: palette.surface,
+        elevation: 0,
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh_rounded),
@@ -49,28 +58,28 @@ class NutritionScreen extends ConsumerWidget {
             onPressed: () {
               ref.read(nutritionProvider.notifier).resetDay();
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Daily meal check-offs reset!')),
+                const SnackBar(
+                  content: Text('Daily meal check-offs reset!'),
+                  behavior: SnackBarBehavior.floating,
+                ),
               );
             },
           ),
         ],
       ),
       body: ListView(
-        padding: const EdgeInsets.all(16),
+        padding: Insets.page,
         children: [
           // Recomposition Targets & Rest Day Toggle Card
           Container(
-            padding: const EdgeInsets.all(18),
+            padding: const EdgeInsets.all(Insets.lg),
             decoration: BoxDecoration(
-              gradient: isDark ? AppColors.darkCardGradient : null,
-              color: isDark ? null : AppColors.lightCard,
-              borderRadius: BorderRadius.circular(22),
-              border: Border.all(
-                color: isDark ? AppColors.darkCardBorder : AppColors.lightCardBorder,
-              ),
+              color: palette.surface,
+              borderRadius: BorderRadius.circular(Radii.xl),
+              border: Border.all(color: palette.border),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.04),
+                  color: Colors.black.withValues(alpha: isDark ? 0.25 : 0.04),
                   blurRadius: 14,
                   offset: const Offset(0, 4),
                 ),
@@ -86,18 +95,18 @@ class NutritionScreen extends ConsumerWidget {
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text(
+                        Text(
                           'DAILY RECOMPOSITION TARGET',
                           style: TextStyle(
                             fontSize: 11,
                             fontWeight: FontWeight.w900,
                             letterSpacing: 0.8,
-                            color: AppColors.primaryVolt,
+                            color: palette.accent,
                           ),
                         ),
                         const SizedBox(height: 2),
                         Text(
-                          '${targetCalories.toInt()} kcal / day',
+                          '${targetCalories.toInt()} kcal',
                           style: const TextStyle(
                             fontSize: 24,
                             fontWeight: FontWeight.w900,
@@ -109,16 +118,17 @@ class NutritionScreen extends ConsumerWidget {
                     // Rest Day Toggle
                     InkWell(
                       onTap: () => ref.read(biometricsProvider.notifier).toggleRestDay(),
-                      borderRadius: BorderRadius.circular(12),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                      borderRadius: BorderRadius.circular(Radii.md),
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 200),
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                         decoration: BoxDecoration(
                           color: biometrics.isRestDay
-                              ? AppColors.primaryOrange.withValues(alpha: 0.2)
-                              : AppColors.primaryVolt.withValues(alpha: 0.15),
-                          borderRadius: BorderRadius.circular(12),
+                              ? palette.orange.withValues(alpha: 0.15)
+                              : palette.accent.withValues(alpha: 0.15),
+                          borderRadius: BorderRadius.circular(Radii.md),
                           border: Border.all(
-                            color: biometrics.isRestDay ? AppColors.primaryOrange : AppColors.primaryVolt,
+                            color: biometrics.isRestDay ? palette.orange : palette.accent,
                             width: 1.5,
                           ),
                         ),
@@ -127,7 +137,7 @@ class NutritionScreen extends ConsumerWidget {
                             Icon(
                               biometrics.isRestDay ? Icons.bedtime_outlined : Icons.fitness_center_rounded,
                               size: 14,
-                              color: biometrics.isRestDay ? AppColors.primaryOrange : AppColors.primaryVolt,
+                              color: biometrics.isRestDay ? palette.orange : palette.accent,
                             ),
                             const SizedBox(width: 6),
                             Text(
@@ -135,7 +145,8 @@ class NutritionScreen extends ConsumerWidget {
                               style: TextStyle(
                                 fontSize: 11,
                                 fontWeight: FontWeight.w900,
-                                color: biometrics.isRestDay ? AppColors.primaryOrange : AppColors.primaryVolt,
+                                color: biometrics.isRestDay ? palette.orange : palette.accent,
+                                letterSpacing: 0.4,
                               ),
                             ),
                           ],
@@ -144,60 +155,62 @@ class NutritionScreen extends ConsumerWidget {
                     ),
                   ],
                 ),
-                const SizedBox(height: 6),
-                Text(
-                  biometrics.isRestDay
-                      ? 'Rest Day Mode Active: Sweet Potato reduced to 100g (Meal 2) to maintain ~615 kcal deficit without training.'
+                const SizedBox(height: Insets.sm),
+                VCallout(
+                  variant: biometrics.isRestDay ? VCalloutVariant.warning : VCalloutVariant.accent,
+                  icon: biometrics.isRestDay ? Icons.bedtime_outlined : Icons.bolt_rounded,
+                  message: biometrics.isRestDay
+                      ? 'Rest Day Mode Active: Sweet Potato reduced to 100g (Meal 2) to maintain ~615 kcal deficit.'
                       : 'Training Day Mode: Full 200g Sweet Potato portion for glycogen replenishment & high performance.',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
-                  ),
                 ),
-                const Divider(height: 24),
+                Divider(height: 28, color: palette.border),
 
-                // Macro Progress Rings / Bars
+                // Macro Progress Rings
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceAround,
                   children: [
-                    _buildMacroRing(
+                    VProgressRing(
                       label: 'Calories',
-                      current: loggedCalories.toInt(),
-                      target: targetCalories.toInt(),
-                      unit: 'kcal',
                       progress: calProgress,
-                      color: AppColors.primaryVolt,
+                      valueText: '${loggedCalories.toInt()}',
+                      targetText: '/ ${targetCalories.toInt()} kcal',
+                      size: 56,
+                      strokeWidth: 4.5,
+                      color: palette.accent,
                     ),
-                    _buildMacroRing(
+                    VProgressRing(
                       label: 'Protein',
-                      current: loggedProtein.toInt(),
-                      target: targetProtein.toInt(),
-                      unit: 'g',
                       progress: pProgress,
-                      color: AppColors.primaryCyan,
+                      valueText: '${loggedProtein.toInt()}g',
+                      targetText: '/ ${targetProtein.toInt()}g',
+                      size: 56,
+                      strokeWidth: 4.5,
+                      color: palette.teal,
                     ),
-                    _buildMacroRing(
+                    VProgressRing(
                       label: 'Carbs',
-                      current: loggedCarbs.toInt(),
-                      target: targetCarbs.toInt(),
-                      unit: 'g',
                       progress: cProgress,
-                      color: AppColors.primaryOrange,
+                      valueText: '${loggedCarbs.toInt()}g',
+                      targetText: '/ ${targetCarbs.toInt()}g',
+                      size: 56,
+                      strokeWidth: 4.5,
+                      color: palette.orange,
                     ),
-                    _buildMacroRing(
+                    VProgressRing(
                       label: 'Fats',
-                      current: loggedFats.toInt(),
-                      target: targetFats.toInt(),
-                      unit: 'g',
                       progress: fProgress,
-                      color: AppColors.primaryIndigo,
+                      valueText: '${loggedFats.toInt()}g',
+                      targetText: '/ ${targetFats.toInt()}g',
+                      size: 56,
+                      strokeWidth: 4.5,
+                      color: palette.indigo,
                     ),
                   ],
                 ),
               ],
             ),
           ),
-          const SizedBox(height: 20),
+          const SizedBox(height: Insets.lg),
 
           // Meals Inventory
           ...MealType.values.map((mealType) {
@@ -206,11 +219,21 @@ class NutritionScreen extends ConsumerWidget {
 
             final mealCalories = itemsForMeal.fold<double>(0, (sum, i) => sum + i.calories);
             final mealProtein = itemsForMeal.fold<double>(0, (sum, i) => sum + i.protein);
+            final completedCount = itemsForMeal.where((i) => i.isCompleted).length;
+            final isAllDone = completedCount == itemsForMeal.length;
 
-            return Card(
-              margin: const EdgeInsets.only(bottom: 16),
+            return Container(
+              margin: const EdgeInsets.only(bottom: Insets.md),
+              decoration: BoxDecoration(
+                color: palette.surface,
+                borderRadius: BorderRadius.circular(Radii.lg),
+                border: Border.all(
+                  color: isAllDone ? palette.accent.withValues(alpha: 0.5) : palette.border,
+                  width: isAllDone ? 1.5 : 1,
+                ),
+              ),
               child: Padding(
-                padding: const EdgeInsets.all(16),
+                padding: const EdgeInsets.all(Insets.md),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -221,16 +244,16 @@ class NutritionScreen extends ConsumerWidget {
                           padding: const EdgeInsets.all(10),
                           margin: const EdgeInsets.only(right: 12),
                           decoration: BoxDecoration(
-                            color: _getMealColor(mealType).withValues(alpha: 0.15),
-                            borderRadius: BorderRadius.circular(12),
+                            color: _getMealColor(mealType, palette).withValues(alpha: 0.15),
+                            borderRadius: BorderRadius.circular(Radii.md),
                             border: Border.all(
-                              color: _getMealColor(mealType).withValues(alpha: 0.3),
+                              color: _getMealColor(mealType, palette).withValues(alpha: 0.3),
                             ),
                           ),
                           child: Icon(
                             _getMealIcon(mealType),
-                            color: _getMealColor(mealType),
-                            size: 22,
+                            color: _getMealColor(mealType, palette),
+                            size: 20,
                           ),
                         ),
                         Expanded(
@@ -242,119 +265,101 @@ class NutritionScreen extends ConsumerWidget {
                                 style: const TextStyle(
                                   fontSize: 15,
                                   fontWeight: FontWeight.bold,
+                                  letterSpacing: -0.2,
                                 ),
                               ),
+                              const SizedBox(height: 2),
                               Text(
                                 '${mealType.timeCue} • ${mealCalories.toInt()} kcal • ${mealProtein.toInt()}g Protein',
                                 style: TextStyle(
                                   fontSize: 12,
-                                  color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
+                                  color: palette.textSecondary,
                                 ),
                               ),
                             ],
                           ),
                         ),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                          decoration: BoxDecoration(
-                            color: AppColors.primaryVolt.withValues(alpha: 0.15),
-                            borderRadius: BorderRadius.circular(6),
-                          ),
-                          child: Text(
-                            '${itemsForMeal.where((i) => i.isCompleted).length}/${itemsForMeal.length}',
-                            style: const TextStyle(
-                              fontSize: 11,
-                              fontWeight: FontWeight.bold,
-                              color: AppColors.primaryVolt,
-                            ),
-                          ),
+                        VBadge(
+                          label: '$completedCount/${itemsForMeal.length}',
+                          variant: isAllDone ? VBadgeVariant.success : VBadgeVariant.accent,
                         ),
                       ],
                     ),
-                    const Divider(height: 20),
+                    Divider(height: 22, color: palette.border),
 
                     // Food items in this meal
                     ...itemsForMeal.map((item) {
-                      return InkWell(
-                        onTap: () => ref.read(nutritionProvider.notifier).toggleItem(item.id),
-                        borderRadius: BorderRadius.circular(10),
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 4),
-                          child: Row(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              // Custom Checkbox
-                              AnimatedContainer(
-                                duration: const Duration(milliseconds: 200),
-                                width: 22,
-                                height: 22,
-                                margin: const EdgeInsets.only(top: 2, right: 12),
-                                decoration: BoxDecoration(
-                                  color: item.isCompleted
-                                      ? AppColors.primaryVolt
-                                      : (isDark ? Colors.white12 : Colors.black12),
-                                  borderRadius: BorderRadius.circular(6),
-                                  border: Border.all(
-                                    color: item.isCompleted ? AppColors.primaryVolt : Colors.transparent,
-                                  ),
+                      return Material(
+                        color: Colors.transparent,
+                        child: InkWell(
+                          onTap: () => ref.read(nutritionProvider.notifier).toggleItem(item.id),
+                          borderRadius: BorderRadius.circular(Radii.md),
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
+                            child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                VCheckbox(
+                                  isChecked: item.isCompleted,
+                                  onChanged: (_) => ref.read(nutritionProvider.notifier).toggleItem(item.id),
+                                  size: 22,
+                                  activeColor: palette.accent,
                                 ),
-                                child: item.isCompleted
-                                    ? const Icon(Icons.check, size: 16, color: Colors.black)
-                                    : null,
-                              ),
+                                const SizedBox(width: 12),
 
-                              // Food Details
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Row(
-                                      children: [
-                                        Icon(
-                                          _getFoodIcon(item.name),
-                                          size: 14,
-                                          color: isDark ? AppColors.primaryVolt : const Color(0xFF00C875),
+                                // Food Details
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Row(
+                                        children: [
+                                          Icon(
+                                            _getFoodIcon(item.name),
+                                            size: 14,
+                                            color: palette.accent,
+                                          ),
+                                          const SizedBox(width: 6),
+                                          Expanded(
+                                            child: Text(
+                                              item.name,
+                                              style: TextStyle(
+                                                fontSize: 14,
+                                                fontWeight: FontWeight.bold,
+                                                decoration: item.isCompleted ? TextDecoration.lineThrough : null,
+                                                color: item.isCompleted
+                                                    ? palette.textMuted
+                                                    : palette.textPrimary,
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                      const SizedBox(height: 2),
+                                      Text(
+                                        '${item.portion} • ${item.calories.toInt()} kcal (${item.protein.toStringAsFixed(1)}g P | ${item.carbs.toStringAsFixed(1)}g C | ${item.fats.toStringAsFixed(1)}g F)',
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          color: palette.textSecondary,
                                         ),
-                                        const SizedBox(width: 6),
-                                        Expanded(
+                                      ),
+                                      if (item.notes.isNotEmpty)
+                                        Padding(
+                                          padding: const EdgeInsets.only(top: 2),
                                           child: Text(
-                                            item.name,
+                                            item.notes,
                                             style: TextStyle(
-                                              fontSize: 14,
-                                              fontWeight: FontWeight.bold,
-                                              decoration: item.isCompleted ? TextDecoration.lineThrough : null,
-                                              color: item.isCompleted
-                                                  ? (isDark ? AppColors.darkTextMuted : AppColors.lightTextMuted)
-                                                  : null,
+                                              fontSize: 11,
+                                              fontStyle: FontStyle.italic,
+                                              color: palette.textMuted,
                                             ),
                                           ),
                                         ),
-                                      ],
-                                    ),
-                                    const SizedBox(height: 2),
-                                    Text(
-                                      '${item.portion} • ${item.calories.toInt()} kcal (${item.protein.toStringAsFixed(1)}g P | ${item.carbs.toStringAsFixed(1)}g C | ${item.fats.toStringAsFixed(1)}g F)',
-                                      style: TextStyle(
-                                        fontSize: 12,
-                                        color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
-                                      ),
-                                    ),
-                                    if (item.notes.isNotEmpty)
-                                      Padding(
-                                        padding: const EdgeInsets.only(top: 2),
-                                        child: Text(
-                                          item.notes,
-                                          style: TextStyle(
-                                            fontSize: 11,
-                                            fontStyle: FontStyle.italic,
-                                            color: isDark ? AppColors.darkTextMuted : AppColors.lightTextMuted,
-                                          ),
-                                        ),
-                                      ),
-                                  ],
+                                    ],
+                                  ),
                                 ),
-                              ),
-                            ],
+                              ],
+                            ),
                           ),
                         ),
                       );
@@ -366,60 +371,6 @@ class NutritionScreen extends ConsumerWidget {
           }),
         ],
       ),
-    );
-  }
-
-  Widget _buildMacroRing({
-    required String label,
-    required int current,
-    required int target,
-    required String unit,
-    required double progress,
-    required Color color,
-  }) {
-    return Column(
-      children: [
-        SizedBox(
-          width: 58,
-          height: 58,
-          child: Stack(
-            alignment: Alignment.center,
-            children: [
-              CircularProgressIndicator(
-                value: progress,
-                strokeWidth: 5,
-                backgroundColor: color.withValues(alpha: 0.15),
-                valueColor: AlwaysStoppedAnimation<Color>(color),
-              ),
-              Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    '$current',
-                    style: const TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w900,
-                    ),
-                  ),
-                  Text(
-                    unit,
-                    style: const TextStyle(fontSize: 8, color: Colors.grey),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 6),
-        Text(
-          label,
-          style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold),
-        ),
-        Text(
-          '/ $target$unit',
-          style: const TextStyle(fontSize: 10, color: Colors.grey),
-        ),
-      ],
     );
   }
 
@@ -438,18 +389,18 @@ class NutritionScreen extends ConsumerWidget {
     }
   }
 
-  Color _getMealColor(MealType type) {
+  Color _getMealColor(MealType type, AppPalette palette) {
     switch (type) {
       case MealType.meal1:
-        return AppColors.primaryOrange;
+        return palette.orange;
       case MealType.meal2:
-        return AppColors.primaryVolt;
+        return palette.accent;
       case MealType.postWorkout:
         return AppColors.primaryCobalt;
       case MealType.meal3:
-        return AppColors.primaryIndigo;
+        return palette.indigo;
       case MealType.beverages:
-        return AppColors.primaryIce;
+        return palette.teal;
     }
   }
 

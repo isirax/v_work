@@ -1,8 +1,8 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../constants/app_colors.dart';
 import '../providers/workout_provider.dart';
+import '../theme/app_palette.dart';
 
 class RestTimerBar extends ConsumerStatefulWidget {
   const RestTimerBar({super.key});
@@ -34,15 +34,15 @@ class _RestTimerBarState extends ConsumerState<RestTimerBar> {
 
   @override
   Widget build(BuildContext context) {
-    final workout = ref.watch(workoutProvider);
-    final remaining = workout.activeRestSeconds;
-    final total = workout.totalRestSeconds ?? 90;
+    // Only rebuild when the timer numbers change, not other workout state
+    final remaining = ref.watch(workoutProvider.select((s) => s.activeRestSeconds));
+    final total = ref.watch(workoutProvider.select((s) => s.totalRestSeconds)) ?? 90;
 
     if (remaining == null || remaining <= 0) {
       return const SizedBox.shrink();
     }
 
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final palette = context.palette;
     final progress = (total > 0) ? (remaining / total).clamp(0.0, 1.0) : 0.0;
 
     final minutes = remaining ~/ 60;
@@ -50,18 +50,18 @@ class _RestTimerBarState extends ConsumerState<RestTimerBar> {
     final timeStr = '${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}';
 
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      margin: const EdgeInsets.symmetric(horizontal: Insets.lg, vertical: Insets.sm),
+      padding: const EdgeInsets.symmetric(horizontal: Insets.lg, vertical: Insets.md),
       decoration: BoxDecoration(
-        color: isDark ? AppColors.darkCardElevated : AppColors.lightCard,
-        borderRadius: BorderRadius.circular(20),
+        color: palette.surfaceElevated,
+        borderRadius: BorderRadius.circular(Radii.xl),
         border: Border.all(
-          color: AppColors.primaryVolt.withValues(alpha: 0.6),
+          color: palette.accent.withValues(alpha: 0.6),
           width: 1.5,
         ),
         boxShadow: [
           BoxShadow(
-            color: AppColors.primaryVolt.withValues(alpha: 0.2),
+            color: palette.accent.withValues(alpha: context.isDark ? 0.25 : 0.15),
             blurRadius: 16,
             offset: const Offset(0, 4),
           ),
@@ -71,21 +71,22 @@ class _RestTimerBarState extends ConsumerState<RestTimerBar> {
         children: [
           // Circular Progress Indicator
           SizedBox(
-            width: 44,
-            height: 44,
+            width: 46,
+            height: 46,
             child: Stack(
               alignment: Alignment.center,
               children: [
                 CircularProgressIndicator(
                   value: progress,
-                  strokeWidth: 4,
-                  backgroundColor: isDark ? Colors.white10 : Colors.black12,
-                  valueColor: const AlwaysStoppedAnimation<Color>(AppColors.primaryVolt),
+                  strokeWidth: 4.5,
+                  strokeCap: StrokeCap.round,
+                  backgroundColor: palette.accent.withValues(alpha: context.isDark ? 0.15 : 0.10),
+                  valueColor: AlwaysStoppedAnimation<Color>(palette.accent),
                 ),
-                const Icon(
+                Icon(
                   Icons.timer_outlined,
                   size: 20,
-                  color: AppColors.primaryVolt,
+                  color: palette.accent,
                 ),
               ],
             ),
@@ -98,21 +99,22 @@ class _RestTimerBarState extends ConsumerState<RestTimerBar> {
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Text(
+                Text(
                   'REST INTERVAL',
                   style: TextStyle(
                     fontSize: 10,
-                    fontWeight: FontWeight.bold,
+                    fontWeight: FontWeight.w900,
                     letterSpacing: 0.8,
-                    color: AppColors.primaryVolt,
+                    color: palette.accent,
                   ),
                 ),
                 Text(
                   timeStr,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 22,
                     fontWeight: FontWeight.w900,
                     letterSpacing: 0.5,
+                    color: palette.textPrimary,
                   ),
                 ),
               ],
@@ -125,21 +127,21 @@ class _RestTimerBarState extends ConsumerState<RestTimerBar> {
             icon: const Icon(Icons.remove_circle_outline_rounded),
             tooltip: '-15s',
             visualDensity: VisualDensity.compact,
-            color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
+            color: palette.textSecondary,
           ),
           IconButton(
             onPressed: () => ref.read(workoutProvider.notifier).adjustRestTimer(30),
             icon: const Icon(Icons.add_circle_outline_rounded),
             tooltip: '+30s',
             visualDensity: VisualDensity.compact,
-            color: AppColors.primaryVolt,
+            color: palette.accent,
           ),
           IconButton(
             onPressed: () => ref.read(workoutProvider.notifier).cancelRestTimer(),
             icon: const Icon(Icons.close_rounded),
             tooltip: 'Skip Rest',
             visualDensity: VisualDensity.compact,
-            color: isDark ? AppColors.darkTextMuted : AppColors.lightTextMuted,
+            color: palette.textMuted,
           ),
         ],
       ),
